@@ -13,17 +13,15 @@ fi
 echo "✅ AWS CLI found"
 echo ""
 
-# Create update payload
-cat > /tmp/rule-update.json << 'JSON'
+# Create update payload (without ruleName - that's passed as parameter, and without empty confirmationUrl)
+cat > update-rule.json << 'JSON'
 {
-  "ruleName": "ForwardESP32DataToBackend",
   "sql": "SELECT device_status, device_data, device_type, device_id, topic() as topic, timestamp() as timestamp FROM 'esp32/+'",
   "description": "Forward ESP32 data to backend API",
   "actions": [
     {
       "http": {
         "url": "https://backend-production-9c17.up.railway.app/api/iot/webhook",
-        "confirmationUrl": "",
         "headers": [
           {
             "key": "Content-Type",
@@ -42,7 +40,7 @@ echo ""
 # Update the rule
 aws iot replace-topic-rule \
   --rule-name ForwardESP32DataToBackend \
-  --topic-payload file:///tmp/rule-update.json
+  --topic-rule-payload file://update-rule.json
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -50,14 +48,20 @@ if [ $? -eq 0 ]; then
     echo ""
     echo "🧪 Next: Test with MQTT Test Client"
     echo "   1. Publish to: esp32/data24"
-    echo "   2. Check Railway logs"
-    echo "   3. Check MongoDB"
+    echo "   2. Check Railway logs (within 2-5 seconds)"
+    echo "   3. Check MongoDB (within 5-10 seconds)"
+    echo ""
+    echo "To verify the rule:"
+    echo "   aws iot get-topic-rule --rule-name ForwardESP32DataToBackend"
 else
     echo ""
     echo "❌ Failed to update rule"
-    echo "Check AWS credentials: aws configure"
+    echo ""
+    echo "Troubleshooting:"
+    echo "   1. Check AWS credentials: aws configure"
+    echo "   2. Verify rule exists: aws iot list-topic-rules"
+    echo "   3. Check JSON file: cat update-rule.json"
 fi
 
 # Cleanup
-rm -f /tmp/rule-update.json
-
+rm -f update-rule.json
