@@ -23,6 +23,13 @@ const deviceDataSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     required: true,
   },
+  data_source: {
+    type: String,
+    enum: ['cloud', 'software', 'direct'],
+    default: 'direct',
+    index: true,
+    required: true,
+  },
   timestamp: {
     type: Date,
     default: Date.now,

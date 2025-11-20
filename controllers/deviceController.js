@@ -48,12 +48,14 @@ export const receiveDeviceData = async (req, res) => {
     const finalDeviceId = device_id || `device_${Date.now()}`;
 
     // Save device data
+    // Mark as 'software' since it's coming from direct API call (software/application)
     const deviceDataRecord = new DeviceData({
       device_type,
       device_id: finalDeviceId,
       device_status,
       raw_data: device_data,
       parsed_data: parsedData,
+      data_source: 'software', // Data from direct API call (software/application)
     });
 
     await deviceDataRecord.save();
@@ -269,14 +271,21 @@ export const getDeviceDataHistory = async (req, res) => {
     const { deviceId } = req.params;
     const limit = parseInt(req.query.limit) || 100;
     const offset = parseInt(req.query.offset) || 0;
+    const dataSource = req.query.data_source; // Optional: 'cloud', 'software', or 'direct'
 
-    const data = await DeviceData.find({ device_id: deviceId })
+    // Build query filter
+    const query = { device_id: deviceId };
+    if (dataSource && ['cloud', 'software', 'direct'].includes(dataSource)) {
+      query.data_source = dataSource;
+    }
+
+    const data = await DeviceData.find(query)
       .sort({ timestamp: -1 })
       .limit(limit)
       .skip(offset)
       .select('-raw_data'); // Exclude raw_data for performance
 
-    const total = await DeviceData.countDocuments({ device_id: deviceId });
+    const total = await DeviceData.countDocuments(query);
 
     res.json({
       success: true,

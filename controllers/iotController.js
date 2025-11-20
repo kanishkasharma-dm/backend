@@ -2,6 +2,7 @@ import DeviceData from '../models/DeviceData.js';
 import DeviceConfig from '../models/DeviceConfig.js';
 import { parseDeviceData } from '../utils/dataParser.js';
 import { publishDeviceConfig, publishDeviceConfigToTopic, publishAcknowledgment } from '../config/awsIoT.js';
+import mongoose from 'mongoose';
 
 /**
  * Webhook endpoint to receive data from AWS IoT Core
@@ -9,10 +10,32 @@ import { publishDeviceConfig, publishDeviceConfigToTopic, publishAcknowledgment 
  * POST /api/iot/webhook
  */
 export const receiveIoTData = async (req, res) => {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  console.log(`[${requestId}] 📥 Received IoT data request`);
+  
   try {
+    // Check MongoDB connection before processing
+    const isMongoConnected = mongoose.connection.readyState === 1;
+    if (!isMongoConnected) {
+      console.error(`[${requestId}] ❌ MongoDB not connected! Connection state: ${mongoose.connection.readyState}`);
+      console.error(`[${requestId}] Attempting to reconnect...`);
+      try {
+        await mongoose.connect(process.env.MONGODB_URI);
+        console.log(`[${requestId}] ✅ MongoDB reconnected successfully`);
+      } catch (reconnectError) {
+        console.error(`[${requestId}] ❌ Failed to reconnect to MongoDB:`, reconnectError.message);
+        return res.status(503).json({
+          success: false,
+          message: 'Database unavailable',
+          requestId: requestId,
+        });
+      }
+    }
+    
     // AWS IoT Core may send data in different formats depending on the rule action
     // Handle both direct payload and IoT Core message format
     let payload = req.body;
+    console.log(`[${requestId}] 📦 Raw payload received:`, JSON.stringify(payload).substring(0, 200));
     
     // If coming from IoT Core HTTPS action, payload might be nested
     if (payload.payload) {
@@ -20,11 +43,14 @@ export const receiveIoTData = async (req, res) => {
       if (typeof payload.payload === 'string') {
         try {
           payload = JSON.parse(Buffer.from(payload.payload, 'base64').toString());
+          console.log(`[${requestId}] 📦 Decoded base64 payload`);
         } catch {
           payload = JSON.parse(payload.payload);
+          console.log(`[${requestId}] 📦 Parsed string payload`);
         }
       } else {
         payload = payload.payload;
+        console.log(`[${requestId}] 📦 Extracted nested payload`);
       }
     }
 
@@ -114,16 +140,64 @@ export const receiveIoTData = async (req, res) => {
       });
     }
 
-    // Save device data
+    // Save device data with retry logic
+    // Mark as 'cloud' since it's coming from AWS IoT Core
     const deviceDataRecord = new DeviceData({
       device_type: finalDeviceType,
       device_id: finalDeviceId,
       device_status,
       raw_data: device_data,
       parsed_data: parsedData,
+      data_source: 'cloud', // Data from AWS IoT Core (hardware)
     });
 
-    await deviceDataRecord.save();
+    console.log(`[${requestId}] 💾 Attempting to save data for device: ${finalDeviceId}, type: ${finalDeviceType}`);
+    
+    // Retry save up to 3 times if it fails
+    let saveAttempts = 0;
+    const maxSaveAttempts = 3;
+    let savedSuccessfully = false;
+    
+    while (saveAttempts < maxSaveAttempts && !savedSuccessfully) {
+      try {
+        // Check MongoDB connection before each save attempt
+        if (mongoose.connection.readyState !== 1) {
+          console.warn(`[${requestId}] ⚠️  MongoDB disconnected before save attempt ${saveAttempts + 1}`);
+          try {
+            await mongoose.connect(process.env.MONGODB_URI);
+            console.log(`[${requestId}] ✅ Reconnected to MongoDB`);
+          } catch (reconnectError) {
+            console.error(`[${requestId}] ❌ Failed to reconnect:`, reconnectError.message);
+            saveAttempts++;
+            if (saveAttempts < maxSaveAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * saveAttempts)); // Wait before retry
+              continue;
+            }
+            throw reconnectError;
+          }
+        }
+        
+        await deviceDataRecord.save();
+        savedSuccessfully = true;
+        console.log(`[${requestId}] ✅ Data saved successfully to MongoDB (attempt ${saveAttempts + 1})`);
+        console.log(`[${requestId}] 📊 Saved record ID: ${deviceDataRecord._id}, timestamp: ${deviceDataRecord.timestamp}`);
+      } catch (saveError) {
+        saveAttempts++;
+        console.error(`[${requestId}] ❌ Save attempt ${saveAttempts} failed:`, saveError.message);
+        
+        if (saveAttempts < maxSaveAttempts) {
+          console.log(`[${requestId}] 🔄 Retrying save... (${saveAttempts}/${maxSaveAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * saveAttempts)); // Exponential backoff
+        } else {
+          console.error(`[${requestId}] ❌ All ${maxSaveAttempts} save attempts failed`);
+          throw saveError;
+        }
+      }
+    }
+    
+    if (!savedSuccessfully) {
+      throw new Error(`Failed to save data after ${maxSaveAttempts} attempts`);
+    }
 
     // Check if there's a pending configuration update for this device
     // Send config update when device_status indicates update needed or when config is pending
@@ -174,12 +248,17 @@ export const receiveIoTData = async (req, res) => {
       }
     }
 
+    console.log(`[${requestId}] ✅ Request completed successfully`);
+    
     res.status(200).json({
       success: true,
       message: 'IoT data received and processed successfully',
+      requestId: requestId,
       data: {
         device_id: finalDeviceId,
+        device_type: finalDeviceType,
         timestamp: deviceDataRecord.timestamp,
+        record_id: deviceDataRecord._id.toString(),
       },
       config_update: config ? {
         available: true,
@@ -189,11 +268,17 @@ export const receiveIoTData = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error receiving IoT data:', error);
+    console.error(`[${requestId}] ❌ Error receiving IoT data:`, error);
+    console.error(`[${requestId}] ❌ Error stack:`, error.stack);
+    console.error(`[${requestId}] ❌ MongoDB connection state:`, mongoose.connection.readyState);
+    
+    // Return error but don't crash the server
     res.status(500).json({
       success: false,
       message: 'Internal server error',
+      requestId: requestId,
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      mongodb_connected: mongoose.connection.readyState === 1,
     });
   }
 };
