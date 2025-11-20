@@ -265,7 +265,7 @@ void stripLeadingAsterisk(char *s) {
 }
 
 void propagateSensitivityToAll(int sens) {
-  bipap.sensitivityA = sens;
+  // Note: Section A doesn't have sensitivity, only B, C, D, E sections have it
   bipap.sensitivityB = sens;
   bipap.sensitivityC = sens;
   bipap.sensitivityD = sens;
