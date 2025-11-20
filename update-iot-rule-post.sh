@@ -22,15 +22,24 @@ cat > update-rule.json << 'JSON'
     {
       "http": {
         "url": "https://backend-production-9c17.up.railway.app/api/iot/webhook",
+        "confirmationUrl": "",
         "headers": [
           {
             "key": "Content-Type",
             "value": "application/json"
           }
-        ]
+        ],
+        "auth": {
+          "sigv4": {
+            "serviceName": "iotdevicegateway",
+            "roleArn": ""
+          }
+        }
       }
     }
-  ]
+  ],
+  "ruleDisabled": false,
+  "awsIotSqlVersion": "2016-03-23"
 }
 JSON
 
