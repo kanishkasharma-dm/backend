@@ -39,7 +39,6 @@ Content-Type: application/json
 ```json
 {
   "device_id": "ECG-12345",
-  "patient_id": "patient_123",
   "ecg_json_data": {
     "timestamp": "2025-11-18 13:16:34",
     "file": "ECG_Report_20251118_131634.pdf",
