@@ -1,0 +1,17 @@
+{
+  "sql": "SELECT *, topic() as topic, timestamp() as timestamp, messageId() as messageId FROM 'esp32/+'",
+  "description": "Forwards ESP32 device data to backend API",
+  "actions": [
+    {
+      "https": {
+        "url": "https://YOUR-NGROK-URL.ngrok.io/api/iot/webhook",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    }
+  ],
+  "ruleDisabled": false
+}
+
+

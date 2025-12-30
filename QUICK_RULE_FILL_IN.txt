@@ -1,0 +1,72 @@
+═══════════════════════════════════════════════════════════════
+    WHAT TO FILL IN - CREATE RULE (Step by Step)
+═══════════════════════════════════════════════════════════════
+
+STEP 1: Rule Properties (CURRENT STEP)
+────────────────────────────────────────────────────────────
+Rule name:
+  ForwardESP32DataToBackend
+
+Rule description (optional):
+  Forwards ESP32 device data from esp32/+ topics to backend API
+
+Click "Next"
+
+────────────────────────────────────────────────────────────
+
+STEP 2: Rule Query Statement
+────────────────────────────────────────────────────────────
+SQL Statement:
+  SELECT 
+      *,
+      topic() as topic,
+      timestamp() as timestamp,
+      messageId() as messageId
+  FROM 
+      'esp32/+'
+
+Copy and paste above SQL
+
+Click "Next"
+
+────────────────────────────────────────────────────────────
+
+STEP 3: Configure Actions
+────────────────────────────────────────────────────────────
+1. Click "Add action"
+2. Select: "Send a message to an HTTPS endpoint"
+3. URL: https://YOUR-NGROK-URL.ngrok.io/api/iot/webhook
+   (Replace YOUR-NGROK-URL with your actual ngrok URL)
+4. Add HTTP header:
+   Key: Content-Type
+   Value: application/json
+5. Click "Create role" (if prompted)
+6. Click "Add action"
+7. Click "Next"
+
+⚠️ IMPORTANT: Start ngrok first (see below)
+
+────────────────────────────────────────────────────────────
+
+STEP 4: Review and Create
+────────────────────────────────────────────────────────────
+Review settings
+Click "Create"
+
+────────────────────────────────────────────────────────────
+
+BEFORE STEP 3 - START NGROK:
+────────────────────────────────────────────────────────────
+# Terminal 2 (new terminal, keep npm run dev running):
+
+# If ngrok not authenticated:
+ngrok config add-authtoken YOUR_AUTHTOKEN
+# (Get authtoken from: https://dashboard.ngrok.com/get-started/your-authtoken)
+
+# Start ngrok
+ngrok http 3000
+
+# Copy the HTTPS URL (e.g., https://abc123.ngrok.io)
+# Use this URL in Step 3!
+
+═══════════════════════════════════════════════════════════════

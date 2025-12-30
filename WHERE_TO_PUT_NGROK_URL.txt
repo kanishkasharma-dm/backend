@@ -1,0 +1,47 @@
+═══════════════════════════════════════════════════════════════
+    WHERE TO PUT YOUR NGROK URL
+═══════════════════════════════════════════════════════════════
+
+YOUR NGROK URL:
+────────────────────────────────────────────────────────────
+https://vina-unscrawled-krishna.ngrok-free.dev
+
+────────────────────────────────────────────────────────────
+
+GO TO: AWS IoT Core Console - Step 3 (Attach rule actions)
+────────────────────────────────────────────────────────────
+
+1. Go back to AWS Console tab
+   (Should be on: Create rule | Step 3)
+
+2. Click dropdown "Choose an action"
+   (Currently showing in red border)
+
+3. Select: "Send a message to an HTTPS endpoint"
+
+4. In the "URL" field, enter:
+   https://vina-unscrawled-krishna.ngrok-free.dev/api/iot/webhook
+
+   ⚠️ IMPORTANT: Add /api/iot/webhook at the end!
+
+5. Add HTTP Header:
+   - Click "Add HTTP header" or "Add header"
+   - Key: Content-Type
+   - Value: application/json
+
+6. Click "Create role" (if prompted)
+   (AWS will create IAM role automatically)
+
+7. Click "Add action" or "Next"
+
+8. Click "Next" to go to Step 4
+
+9. Review settings and click "Create"
+
+═══════════════════════════════════════════════════════════════
+
+FULL URL TO ENTER:
+────────────────────────────────────────────────────────────
+https://vina-unscrawled-krishna.ngrok-free.dev/api/iot/webhook
+
+═══════════════════════════════════════════════════════════════

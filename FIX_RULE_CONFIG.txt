@@ -1,0 +1,47 @@
+═══════════════════════════════════════════════════════════════
+    FIX: Two Things Need to Be Updated
+═══════════════════════════════════════════════════════════════
+
+ISSUE 1: URL is Missing /api/iot/webhook
+────────────────────────────────────────────────────────────
+CURRENT URL (Wrong):
+  https://vina-unscrawled-krishna.ngrok-free.dev
+
+CORRECT URL:
+  https://vina-unscrawled-krishna.ngrok-free.dev/api/iot/webhook
+
+ACTION: Add /api/iot/webhook at the end!
+
+────────────────────────────────────────────────────────────
+
+ISSUE 2: Missing HTTP Header
+────────────────────────────────────────────────────────────
+CURRENT: No headers added
+
+NEEDED: Add HTTP header
+  Key: Content-Type
+  Value: application/json
+
+ACTION: Click "Add new header" button and add the header
+
+────────────────────────────────────────────────────────────
+
+HOW TO FIX:
+────────────────────────────────────────────────────────────
+1. In "HTTPS endpoint URL" field:
+   Change: https://vina-unscrawled-krishna.ngrok-free.dev
+   To:     https://vina-unscrawled-krishna.ngrok-free.dev/api/iot/webhook
+
+2. Click "Add new header" button (in Headers section)
+
+3. Enter:
+   Key: Content-Type
+   Value: application/json
+
+4. Click "Add action" or "Next"
+
+5. Then click "Next" to go to Step 4
+
+6. Review and click "Create"
+
+═══════════════════════════════════════════════════════════════

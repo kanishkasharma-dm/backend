@@ -1,0 +1,33 @@
+═══════════════════════════════════════════════════════════════
+    STEP 3: ATTACH RULE ACTIONS - QUICK GUIDE
+═══════════════════════════════════════════════════════════════
+
+FIRST: Start ngrok (Terminal 2)
+────────────────────────────────────────────────────────────
+ngrok http 3000
+
+Copy the HTTPS URL (e.g., https://abc123.ngrok.io)
+
+────────────────────────────────────────────────────────────
+
+IN AWS CONSOLE (Step 3):
+────────────────────────────────────────────────────────────
+1. Click dropdown "Choose an action"
+2. Select: "Send a message to an HTTPS endpoint"
+3. URL: https://YOUR-NGROK-URL.ngrok.io/api/iot/webhook
+   (Use your actual ngrok URL!)
+4. Add HTTP header:
+   Key: Content-Type
+   Value: application/json
+5. Click "Create role" (if prompted)
+6. Click "Add action" or "Next"
+7. Click "Next" to go to Step 4
+
+────────────────────────────────────────────────────────────
+
+STEP 4: Review and Create
+────────────────────────────────────────────────────────────
+Review settings
+Click "Create"
+
+═══════════════════════════════════════════════════════════════

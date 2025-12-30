@@ -1,0 +1,61 @@
+═══════════════════════════════════════════════════════════════
+    HOW TO CHECK THIS SPECIFIC DATA IN DATABASE
+═══════════════════════════════════════════════════════════════
+
+YOUR DATA:
+────────────────────────────────────────────────────────────
+{
+  "device_status": 0,
+  "device_data": "*,R,142225,1703,MANUALMODE,G,13.6,1.0,H,12.4,12.4,20.0,1.0,I,5.0,1.0,1.0,1.0,0.0,1.0,1.0,12345678C,#"
+}
+
+────────────────────────────────────────────────────────────
+
+METHOD 1: MongoDB Atlas (Best - Visual)
+────────────────────────────────────────────────────────────
+1. Go to: https://cloud.mongodb.com/
+2. Click cluster → Browse Collections
+3. Navigate to: mehulapi → devicedatas
+4. Click "Filter"
+5. Enter: { "raw_data": { "$regex": "MANUALMODE" } }
+6. Or: { "raw_data": { "$regex": "142225" } }
+7. Refresh
+8. Look for record with this exact raw_data
+
+────────────────────────────────────────────────────────────
+
+METHOD 2: API Endpoint
+────────────────────────────────────────────────────────────
+curl 'http://localhost:3000/api/devices/24/data?limit=20'
+
+Look for records with:
+  - device_status: 0
+  - raw_data containing: "MANUALMODE" or "142225"
+
+────────────────────────────────────────────────────────────
+
+METHOD 3: Test if It Reached API
+────────────────────────────────────────────────────────────
+If not in database, test manually:
+
+curl -X POST http://localhost:3000/api/iot/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "device_status": 0,
+    "device_data": "*,R,142225,1703,MANUALMODE,G,13.6,1.0,H,12.4,12.4,20.0,1.0,I,5.0,1.0,1.0,1.0,0.0,1.0,1.0,12345678C,#",
+    "topic": "esp32/data24"
+  }'
+
+This will save it to MongoDB immediately!
+
+────────────────────────────────────────────────────────────
+
+METHOD 4: Check Server Logs
+────────────────────────────────────────────────────────────
+When device sent this data, did you see:
+  POST /api/iot/webhook 200
+  IoT data received and processed successfully
+
+If yes → Data was saved!
+
+═══════════════════════════════════════════════════════════════

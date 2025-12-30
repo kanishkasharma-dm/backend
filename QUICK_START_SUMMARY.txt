@@ -1,0 +1,48 @@
+═══════════════════════════════════════════════════════════════
+    GET DEVICE DATA TO MONGODB - QUICK SUMMARY
+═══════════════════════════════════════════════════════════════
+
+YOUR SITUATION:
+  ✅ Device sends data to: esp32/data24
+  ✅ Data appears in: AWS IoT Core MQTT test client
+  ✅ Your API is ready: /api/iot/webhook endpoint working
+  ✅ MongoDB is connected: Ready to save data
+  ❌ Missing: AWS IoT Core Rule to forward data to API
+
+TO FIX (3 STEPS):
+
+STEP 1: Start ngrok (Terminal 2 - keep npm run dev running)
+  ──────────────────────────────────────────────────────────
+  ngrok http 3000
+  
+  Copy the HTTPS URL (e.g., https://abc123.ngrok.io)
+
+STEP 2: Create AWS IoT Core Rule
+  ──────────────────────────────────────────────────────────
+  1. AWS Console → IoT Core → Rules → "Create rule"
+  2. Name: ForwardESP32DataToBackend
+  3. SQL: SELECT *, topic() as topic FROM 'esp32/+'
+  4. Action: HTTPS endpoint
+     URL: https://YOUR-NGROK-URL.ngrok.io/api/iot/webhook
+     Header: Content-Type: application/json
+  5. Save
+
+STEP 3: Test
+  ──────────────────────────────────────────────────────────
+  - Device sends data to esp32/data24
+  - Check server logs: Should see "POST /api/iot/webhook 200"
+  - Check MongoDB Atlas: Refresh → See your data!
+
+THAT'S IT! Data will flow automatically:
+  Device → IoT Core → API → MongoDB Atlas
+
+═══════════════════════════════════════════════════════════════
+
+FILES TO SHARE WITH TEAM:
+  📄 TEAM_API_SHARE.md - Quick start for team members
+  📄 GET_DATA_TO_DATABASE.md - Complete setup guide
+  📄 SHARE_WITH_TEAM.md - Team deployment guide
+  📄 .env.example - Environment variables template
+  📁 All source code files
+
+═══════════════════════════════════════════════════════════════

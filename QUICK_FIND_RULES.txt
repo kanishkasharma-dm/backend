@@ -1,0 +1,29 @@
+═══════════════════════════════════════════════════════════════
+    CAN'T FIND RULES? USE DIRECT URL
+═══════════════════════════════════════════════════════════════
+
+METHOD 1: Direct URL (EASIEST!)
+────────────────────────────────────────────────────────────
+Copy and paste this in your browser:
+
+https://us-east-1.console.aws.amazon.com/iot/home?region=us-east-1#/rules
+
+This takes you directly to Rules page!
+
+METHOD 2: AWS Console Search
+────────────────────────────────────────────────────────────
+1. Click search bar at top (next to AWS logo)
+2. Type: "IoT Rules"
+3. Click on "Rules (IoT Core)"
+
+METHOD 3: Under Message Routing
+────────────────────────────────────────────────────────────
+1. Click "Message routing" (under "Manage")
+2. Look for "Rules" tab or section
+3. Click it
+
+═══════════════════════════════════════════════════════════════
+
+IF STILL CAN'T FIND - Use AWS CLI (see SETUP_RULE_VIA_CLI.md)
+
+═══════════════════════════════════════════════════════════════

@@ -1,0 +1,31 @@
+AWS IoT Core Rule Setup - Quick Instructions
+============================================
+
+Your device sends data to: esp32/data24
+You want it to save in: MongoDB Atlas (mehulapi database)
+
+STEP 1: Start ngrok (Terminal 2)
+---------------------------------
+ngrok http 3000
+
+Copy the ngrok URL (e.g., https://abc123.ngrok.io)
+
+STEP 2: Create AWS IoT Core Rule
+---------------------------------
+1. Go to: AWS Console → IoT Core → Rules
+2. Click "Create rule"
+3. Name: ForwardESP32DataToBackend
+4. SQL:
+   SELECT *, topic() as topic FROM 'esp32/+'
+5. Action: HTTPS endpoint
+   URL: https://YOUR-NGROK-URL.ngrok.io/api/iot/webhook
+   Header: Content-Type: application/json
+6. Save
+
+STEP 3: Test
+------------
+- Device sends data to esp32/data24
+- Check server logs: Should see POST /api/iot/webhook 200
+- Check MongoDB Atlas: Refresh → Should see data!
+
+That's it! Data will automatically flow from device → IoT Core → API → MongoDB!

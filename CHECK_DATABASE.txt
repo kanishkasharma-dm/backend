@@ -1,0 +1,44 @@
+═══════════════════════════════════════════════════════════════
+    HOW TO CHECK DATA IN DATABASE
+═══════════════════════════════════════════════════════════════
+
+METHOD 1: MongoDB Atlas (Easiest - Visual)
+────────────────────────────────────────────────────────────
+1. Go to: https://cloud.mongodb.com/
+2. Click your cluster
+3. Click "Browse Collections"
+4. Navigate to: mehulapi → devicedatas
+5. REFRESH the page (important!)
+6. Should see your data with device_id: "24"
+
+────────────────────────────────────────────────────────────
+
+METHOD 2: API Endpoint (Quick Check)
+────────────────────────────────────────────────────────────
+curl http://localhost:3000/api/devices/24/data?limit=5
+
+Or in browser:
+http://localhost:3000/api/devices/24/data?limit=5
+
+────────────────────────────────────────────────────────────
+
+METHOD 3: Check Server Logs
+────────────────────────────────────────────────────────────
+Look in terminal where "npm run dev" is running:
+
+Should see:
+  POST /api/iot/webhook 200
+  IoT data received and processed successfully
+
+If you see this, data was saved!
+
+────────────────────────────────────────────────────────────
+
+IF DATA NOT THERE:
+────────────────────────────────────────────────────────────
+1. Check server logs for errors
+2. Check MongoDB connection: Should see ✅ MongoDB Connected
+3. Test API directly with curl command
+4. Verify rule is Active in AWS IoT Core
+
+═══════════════════════════════════════════════════════════════

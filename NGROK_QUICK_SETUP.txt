@@ -1,0 +1,50 @@
+═══════════════════════════════════════════════════════════════
+    NGROK SETUP - QUICK STEPS
+═══════════════════════════════════════════════════════════════
+
+STEP 1: Complete ngrok Onboarding (Current Step)
+────────────────────────────────────────────────────────────
+✓ "Software Engineer (Development)" (already selected)
+✓ "IoT Device Connectivity" (already selected)
+✓ "Development" (already selected)
+
+Click "Continue" button
+
+────────────────────────────────────────────────────────────
+
+STEP 2: Get Authtoken
+────────────────────────────────────────────────────────────
+After "Continue", you'll see dashboard
+
+Get your authtoken from:
+  https://dashboard.ngrok.com/get-started/your-authtoken
+
+Copy the authtoken (looks like: 2abc123def456...)
+
+────────────────────────────────────────────────────────────
+
+STEP 3: Configure ngrok (Terminal)
+────────────────────────────────────────────────────────────
+ngrok config add-authtoken YOUR_AUTHTOKEN_HERE
+
+(Replace YOUR_AUTHTOKEN_HERE with your actual authtoken)
+
+────────────────────────────────────────────────────────────
+
+STEP 4: Start ngrok (Terminal)
+────────────────────────────────────────────────────────────
+ngrok http 3000
+
+Copy the HTTPS URL (e.g., https://abc123.ngrok.io)
+
+────────────────────────────────────────────────────────────
+
+STEP 5: Use in AWS IoT Core (Step 3)
+────────────────────────────────────────────────────────────
+URL: https://YOUR-NGROK-URL.ngrok.io/api/iot/webhook
+
+(Replace YOUR-NGROK-URL with your actual ngrok URL)
+
+Then complete the rule!
+
+═══════════════════════════════════════════════════════════════

@@ -1,0 +1,48 @@
+═══════════════════════════════════════════════════════════════
+    DEPLOY API FOR TEAM - QUICK GUIDE
+═══════════════════════════════════════════════════════════════
+
+BEST OPTION: Railway (Easiest - 10 minutes)
+────────────────────────────────────────────────────────────
+1. Push code to GitHub
+2. Sign up: https://railway.app
+3. Deploy from GitHub repo
+4. Add environment variables (from .env)
+5. Get production URL
+6. Update AWS IoT Core Rule with production URL
+
+────────────────────────────────────────────────────────────
+
+OTHER OPTIONS:
+────────────────────────────────────────────────────────────
+- AWS Elastic Beanstalk (if using AWS)
+- Heroku (popular platform)
+
+────────────────────────────────────────────────────────────
+
+AFTER DEPLOYMENT:
+────────────────────────────────────────────────────────────
+1. Update AWS IoT Core Rule:
+   - Go to Rules → ForwardESP32DataToBackend → Edit
+   - Change URL from ngrok to production URL
+   - Save
+
+2. Stop ngrok (no longer needed)
+
+3. Share production URL with team:
+   https://your-api-url.com
+
+────────────────────────────────────────────────────────────
+
+WHAT TO SHARE WITH TEAM:
+────────────────────────────────────────────────────────────
+- Production API URL
+- README.md (API documentation)
+- .env.example (environment template)
+- TEAM_API_SHARE.md (team guide)
+
+────────────────────────────────────────────────────────────
+
+SEE DEPLOY_NOW.md FOR DETAILED STEPS!
+
+═══════════════════════════════════════════════════════════════

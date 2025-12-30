@@ -1,0 +1,54 @@
+═══════════════════════════════════════════════════════════════
+    FINAL CHECK - Two Things Still Need Fixing
+═══════════════════════════════════════════════════════════════
+
+ISSUE 1: URL Still Missing /api/iot/webhook
+────────────────────────────────────────────────────────────
+CURRENT (in URL field):
+  https://vina-unscrawled-krishna.ngrok-free.dev
+
+NEEDS TO BE:
+  https://vina-unscrawled-krishna.ngrok-free.dev/api/iot/webhook
+
+ACTION: 
+  1. Click in the URL field
+  2. Add /api/iot/webhook at the end
+  3. Should be: https://vina-unscrawled-krishna.ngrok-free.dev/api/iot/webhook
+
+────────────────────────────────────────────────────────────
+
+ISSUE 2: HTTP Header Not Visible
+────────────────────────────────────────────────────────────
+Headers section shows "1" but no header key-value is visible
+
+NEEDS:
+  Key: Content-Type
+  Value: application/json
+
+ACTION:
+  1. Click in the Headers section (where it shows "1")
+  2. Make sure it shows:
+     Key: Content-Type
+     Value: application/json
+  3. If not, click "Add" or "Edit" to add it
+
+────────────────────────────────────────────────────────────
+
+AFTER FIXING BOTH:
+────────────────────────────────────────────────────────────
+1. URL field should show:
+   https://vina-unscrawled-krishna.ngrok-free.dev/api/iot/webhook
+
+2. Headers section should show:
+   Content-Type: application/json
+
+3. Then click "Create" button (orange button at bottom)
+
+═══════════════════════════════════════════════════════════════
+
+VERIFY BEFORE CLICKING "CREATE":
+────────────────────────────────────────────────────────────
+✅ URL ends with /api/iot/webhook
+✅ Headers section shows Content-Type: application/json
+
+═══════════════════════════════════════════════════════════════

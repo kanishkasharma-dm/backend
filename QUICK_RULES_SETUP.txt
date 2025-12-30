@@ -1,0 +1,25 @@
+═══════════════════════════════════════════════════════════════
+    WHERE TO FIND RULES IN AWS IOT CORE
+═══════════════════════════════════════════════════════════════
+
+STEP 1: In AWS IoT Core Console
+────────────────────────────────────────────────────────────
+1. Look at LEFT SIDEBAR
+2. Click "Manage" section
+3. Find "Rules" (or click "Message routing" then "Rules")
+4. Click "Rules"
+
+STEP 2: Create Rule
+────────────────────────────────────────────────────────────
+1. Click "Create rule" button (top right)
+2. Rule name: ForwardESP32DataToBackend
+3. SQL: SELECT *, topic() as topic FROM 'esp32/+'
+4. Action: HTTPS endpoint
+   URL: https://YOUR-NGROK-URL.ngrok.io/api/iot/webhook
+   Header: Content-Type: application/json
+5. Save
+
+PATH:
+  AWS IoT Core → Manage → Rules → Create rule
+
+═══════════════════════════════════════════════════════════════

@@ -1,0 +1,40 @@
+═══════════════════════════════════════════════════════════════
+    FIX SQL ERROR - messageId() Function Issue
+═══════════════════════════════════════════════════════════════
+
+ERROR:
+────────────────────────────────────────────────────────────
+InvalidRequestException
+ERROR: The provided function messageid does not exist
+
+────────────────────────────────────────────────────────────
+
+PROBLEM:
+────────────────────────────────────────────────────────────
+messageId() is not a valid function in AWS IoT Core SQL
+
+────────────────────────────────────────────────────────────
+
+CURRENT SQL (WRONG):
+────────────────────────────────────────────────────────────
+SELECT *, topic() as topic, timestamp() as timestamp, messageId() as messageId FROM 'esp32/+'
+
+────────────────────────────────────────────────────────────
+
+CORRECTED SQL (FIXED):
+────────────────────────────────────────────────────────────
+SELECT *, topic() as topic, timestamp() as timestamp FROM 'esp32/+'
+
+────────────────────────────────────────────────────────────
+
+HOW TO FIX:
+────────────────────────────────────────────────────────────
+1. Click "Edit" button next to "SQL statement" section
+2. Remove: , messageId() as messageId
+3. SQL should be:
+   SELECT *, topic() as topic, timestamp() as timestamp FROM 'esp32/+'
+4. Click "Next"
+5. Continue to Step 4
+6. Click "Create"
+
+═══════════════════════════════════════════════════════════════
