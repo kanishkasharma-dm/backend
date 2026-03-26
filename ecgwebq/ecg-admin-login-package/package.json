@@ -1,0 +1,7 @@
+{
+  "name": "ecg-admin-login",
+  "version": "1.0.0",
+  "description": "Standalone admin login Lambda for CardioX ECG backend",
+  "main": "index.js",
+  "license": "UNLICENSED"
+}

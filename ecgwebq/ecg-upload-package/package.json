@@ -1,0 +1,9 @@
+{
+  "name": "ecg-upload",
+  "version": "1.0.0",
+  "main": "upload.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.970.0"
+  }
+}

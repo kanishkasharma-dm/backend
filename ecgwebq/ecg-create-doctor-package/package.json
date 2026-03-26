@@ -1,0 +1,10 @@
+{
+  "name": "ecg-create-doctor",
+  "version": "1.0.0",
+  "main": "create-doctor.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "bcryptjs": "^3.0.3"
+  }
+}
