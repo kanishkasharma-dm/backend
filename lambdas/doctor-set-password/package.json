@@ -1,0 +1,9 @@
+{
+  "name": "doctor-set-password",
+  "version": "1.0.0",
+  "main": "doctor-set-password.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4"
+  }
+}

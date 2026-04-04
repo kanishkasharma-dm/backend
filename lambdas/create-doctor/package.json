@@ -1,0 +1,10 @@
+{
+  "name": "create-doctor",
+  "version": "1.0.0",
+  "main": "create-doctor.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.758.0",
+    "@supabase/supabase-js": "^2.57.4"
+  }
+}
