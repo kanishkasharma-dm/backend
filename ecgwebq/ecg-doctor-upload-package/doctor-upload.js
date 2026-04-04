@@ -32,7 +32,7 @@ function buildHeaders(event) {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": getCorsOrigin(event),
     "Access-Control-Allow-Headers": "Content-Type,x-api-key,X-API-Key,Authorization",
-    "Access-Control-Allow-Methods": "POST,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Credentials": "true",
     Vary: "Origin",
     "Cache-Control": "no-store",
@@ -177,14 +177,6 @@ exports.handler = async (event) => {
       return createResponse({ message: "CORS preflight" }, 200, event);
     }
 
-    if (method !== "POST") {
-      return createResponse(
-        { success: false, message: "Method not allowed" },
-        405,
-        event
-      );
-    }
-
     if (!validateApiKey(event)) {
       return createResponse(
         { success: false, message: "Invalid or missing API key" },
@@ -197,6 +189,44 @@ exports.handler = async (event) => {
       return createResponse(
         { success: false, message: "Supabase configuration missing" },
         500,
+        event
+      );
+    }
+
+    if (method === "GET") {
+      const { data: doctors, error } = await supabase
+        .from("doctors")
+        .select("id, doctor_name, email")
+        .order("doctor_name", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      const normalizedDoctors = (doctors || [])
+        .map((doctor) => ({
+          id: doctor.id,
+          doctor_name: sanitizeDoctorName(doctor.doctor_name),
+          email: doctor.email || null,
+        }))
+        .filter((doctor) => doctor.doctor_name);
+
+      return createResponse(
+        {
+          success: true,
+          doctors: normalizedDoctors,
+          names: normalizedDoctors.map((doctor) => doctor.doctor_name),
+          total: normalizedDoctors.length,
+        },
+        200,
+        event
+      );
+    }
+
+    if (method !== "POST") {
+      return createResponse(
+        { success: false, message: "Method not allowed" },
+        405,
         event
       );
     }

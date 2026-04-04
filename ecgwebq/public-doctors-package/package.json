@@ -1,0 +1,9 @@
+{
+  "name": "public-doctors",
+  "version": "1.0.0",
+  "main": "public-doctors.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4"
+  }
+}

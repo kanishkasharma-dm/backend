@@ -1,0 +1,10 @@
+{
+  "name": "backfill-doctors-s3",
+  "version": "1.0.0",
+  "main": "backfill-doctors-s3.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1019.0",
+    "@supabase/supabase-js": "^2.57.4"
+  }
+}

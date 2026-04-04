@@ -2,12 +2,22 @@
 
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
+const { PutObjectCommand, S3Client } = require("@aws-sdk/client-s3");
+const { SendEmailCommand, SESv2Client } = require("@aws-sdk/client-sesv2");
 const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const sesClient = new SESv2Client({
+  region: process.env.SES_REGION || process.env.AWS_REGION || "us-east-1",
+});
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || process.env.SES_REGION || "us-east-1",
+});
 
 function getCorsOrigin(event) {
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
@@ -63,6 +73,7 @@ function extractBearerToken(event) {
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null;
   }
+
   return authHeader.slice(7).trim();
 }
 
@@ -134,6 +145,140 @@ function sanitizeEmail(value) {
 
 function generateTemporaryPassword() {
   return `Doc@${Math.random().toString(36).slice(2, 8)}${Math.floor(100 + Math.random() * 900)}`;
+}
+
+function generateInviteToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function buildSetupUrl(token) {
+  const baseUrl = process.env.DOCTOR_SETUP_BASE_URL;
+  if (!baseUrl) {
+    return null;
+  }
+
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${separator}token=${encodeURIComponent(token)}`;
+}
+
+async function sendInviteEmail({ email, doctorName, temporaryPassword, setupUrl }) {
+  const provider = (process.env.EMAIL_PROVIDER || "").toLowerCase();
+  const fromAddress = process.env.EMAIL_FROM;
+
+  if (provider !== "ses" || !fromAddress) {
+    return {
+      sent: false,
+      reason: "EMAIL_NOT_CONFIGURED",
+    };
+  }
+
+  const htmlBody = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
+      <h2>Welcome to CardioX</h2>
+      <p>Hello ${doctorName},</p>
+      <p>Your doctor account has been created.</p>
+      <p><strong>Temporary password:</strong> ${temporaryPassword}</p>
+      <p>Please set your own password using the secure link below:</p>
+      <p><a href="${setupUrl}">${setupUrl}</a></p>
+      <p>This link will expire in 24 hours.</p>
+    </div>
+  `;
+
+  const textBody = [
+    `Hello ${doctorName},`,
+    "",
+    "Your doctor account has been created.",
+    `Temporary password: ${temporaryPassword}`,
+    "",
+    "Set your own password using this secure link:",
+    setupUrl,
+    "",
+    "This link will expire in 24 hours.",
+  ].join("\n");
+
+  await sesClient.send(
+    new SendEmailCommand({
+      FromEmailAddress: fromAddress,
+      Destination: {
+        ToAddresses: [email],
+      },
+      Content: {
+        Simple: {
+          Subject: {
+            Data: "Your CardioX doctor account invitation",
+          },
+          Body: {
+            Text: {
+              Data: textBody,
+            },
+            Html: {
+              Data: htmlBody,
+            },
+          },
+        },
+      },
+    })
+  );
+
+  return {
+    sent: true,
+    reason: null,
+  };
+}
+
+function getBucketName() {
+  return process.env.S3_BUCKET_NAME || process.env.S3_BUCKET || "deck-backend-demo";
+}
+
+async function seedDoctorS3Artifacts({ doctorName, email, doctorId }) {
+  const bucketName = getBucketName();
+  const nowIso = new Date().toISOString();
+
+  const objectsToCreate = [
+    {
+      Key: `doctor-assigned-reports/${doctorName}/`,
+      Body: "",
+      ContentType: "application/x-directory",
+    },
+    {
+      Key: `doctor-assigned-reports/${doctorName}/pending/`,
+      Body: "",
+      ContentType: "application/x-directory",
+    },
+    {
+      Key: `doctor-assigned-reports/${doctorName}/reviewed/`,
+      Body: "",
+      ContentType: "application/x-directory",
+    },
+    {
+      Key: `doctors/${doctorName}/`,
+      Body: "",
+      ContentType: "application/x-directory",
+    },
+    {
+      Key: `doctors/${doctorName}/doctor.json`,
+      Body: JSON.stringify(
+        {
+          id: doctorId,
+          doctor_name: doctorName,
+          email,
+          created_at: nowIso,
+        },
+        null,
+        2
+      ),
+      ContentType: "application/json",
+    },
+  ];
+
+  for (const objectConfig of objectsToCreate) {
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: bucketName,
+        ...objectConfig,
+      })
+    );
+  }
 }
 
 exports.handler = async (event) => {
@@ -231,6 +376,9 @@ exports.handler = async (event) => {
 
     const temporaryPassword = generateTemporaryPassword();
     const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+    const inviteToken = generateInviteToken();
+    const inviteTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const nowIso = new Date().toISOString();
 
     const { data: insertedDoctor, error: insertError } = await supabase
       .from("doctors")
@@ -238,28 +386,63 @@ exports.handler = async (event) => {
         doctor_name: doctorName,
         email,
         password_hash: passwordHash,
+        invite_token: inviteToken,
+        invite_token_expires_at: inviteTokenExpiresAt,
+        password_reset_required: true,
+        invite_sent_at: nowIso,
+        updated_at: nowIso,
       })
-      .select("id, created_at, doctor_name, email")
+      .select("id, created_at, doctor_name, email, invite_token_expires_at, password_reset_required")
       .single();
 
     if (insertError) {
       throw insertError;
     }
 
-    return createResponse(
-      {
-        success: true,
-        message: "Doctor created successfully",
-        doctor: insertedDoctor,
-        temporaryPassword,
-        createdBy: {
-          userId: admin.userId,
-          email: admin.email,
-        },
+    await seedDoctorS3Artifacts({
+      doctorName,
+      email,
+      doctorId: insertedDoctor.id,
+    });
+
+    const setupUrl = buildSetupUrl(inviteToken);
+    const emailResult = setupUrl
+      ? await sendInviteEmail({
+          email,
+          doctorName,
+          temporaryPassword,
+          setupUrl,
+        })
+      : {
+          sent: false,
+          reason: "SETUP_URL_NOT_CONFIGURED",
+        };
+
+    const responseBody = {
+      success: true,
+      message: emailResult.sent
+        ? "Doctor invited successfully"
+        : "Doctor created successfully, but invite email was not sent",
+      doctor: insertedDoctor,
+      invite: {
+        emailSent: emailResult.sent,
+        reason: emailResult.reason,
       },
-      201,
-      event
-    );
+      createdBy: {
+        userId: admin.userId,
+        email: admin.email,
+      },
+    };
+
+    if (!emailResult.sent) {
+      responseBody.debug = {
+        temporaryPassword,
+        inviteToken,
+        setupUrl,
+      };
+    }
+
+    return createResponse(responseBody, 201, event);
   } catch (error) {
     console.error("Create doctor error:", error);
     return createResponse(

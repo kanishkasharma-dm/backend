@@ -1,0 +1,9 @@
+{
+  "name": "doctor-validate-invite",
+  "version": "1.0.0",
+  "main": "doctor-validate-invite.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4"
+  }
+}
