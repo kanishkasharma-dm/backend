@@ -138,18 +138,6 @@ function extractBearerToken(event) {
   return authHeader.slice(7).trim();
 }
 
-function sanitizeString(input) {
-  if (typeof input !== "string") {
-    return "";
-  }
-
-  return input
-    .trim()
-    .replace(/[<>]/g, "")
-    .replace(/['"]/g, "")
-    .substring(0, 1000);
-}
-
 function isValidBase64(input) {
   if (typeof input !== "string" || input.length === 0) {
     return false;
@@ -194,7 +182,10 @@ function generateRecordId() {
   return `ECG_Report_${timestamp}_${suffix}`;
 }
 
-async function uploadECGRecord(recordId, record) {
+/**
+ * Uploads both JSON and PDF to S3 (Twin Upload)
+ */
+async function uploadECGRecord(recordId, record, pdfBase64) {
   const bucketName = process.env.S3_BUCKET_NAME || process.env.S3_BUCKET;
   if (!bucketName) {
     throw new Error("S3_BUCKET_NAME or S3_BUCKET is required");
@@ -203,17 +194,23 @@ async function uploadECGRecord(recordId, record) {
   const jsonKey = `ecg-data/${recordId}.json`;
   const pdfKey = `ecg-data/${recordId}.pdf`;
 
+  // Optimization: Clone record and remove base64 PDF from JSON to save space
+  const jsonRecord = { ...record };
+  delete jsonRecord.pdfReport;
+
+  // 1. Upload JSON Metadata
   await s3Client.send(
     new PutObjectCommand({
       Bucket: bucketName,
       Key: jsonKey,
-      Body: JSON.stringify(record, null, 2),
+      Body: JSON.stringify(jsonRecord, null, 2),
       ContentType: "application/json",
       ServerSideEncryption: "AES256",
     })
   );
 
-  const pdfPayload = extractBase64Data(record.pdfReport);
+  // 2. Upload PDF Report
+  const pdfPayload = extractBase64Data(pdfBase64);
   await s3Client.send(
     new PutObjectCommand({
       Bucket: bucketName,
@@ -257,67 +254,46 @@ exports.handler = async (event) => {
       return createErrorResponse("Invalid JSON in request body", 400, "INVALID_JSON", event);
     }
 
-    const { deviceId, patient, ecgData, pdfReport } = requestBody;
+    // Determine Report Type & PDF Report
+    const reportType = (requestBody.report_type || requestBody.reportType || "ecg").toLowerCase();
+    const pdfReport = requestBody.pdfReport;
 
-    if (!deviceId || !patient || !ecgData || !pdfReport) {
-      return createErrorResponse(
-        "Missing required fields: deviceId, patient, ecgData, pdfReport",
-        400,
-        "VALIDATION_ERROR",
-        event
-      );
-    }
-
-    if (!patient.name || !patient.phone || !patient.age || !patient.gender) {
-      return createErrorResponse(
-        "Missing required patient fields: name, phone, age, gender",
-        400,
-        "VALIDATION_ERROR",
-        event
-      );
-    }
-
-    if (!ecgData.duration || !ecgData.leads || !ecgData.sampleRate || !ecgData.waveform) {
-      return createErrorResponse(
-        "Missing required ECG data fields: duration, leads, sampleRate, waveform",
-        400,
-        "VALIDATION_ERROR",
-        event
-      );
-    }
-
-    if (!isValidBase64(ecgData.waveform)) {
-      return createErrorResponse("Invalid base64 data in ECG waveform", 400, "VALIDATION_ERROR", event);
+    // Base Validation
+    if (!pdfReport) {
+      return createErrorResponse("Missing required field: pdfReport (base64 encoded)", 400, "VALIDATION_ERROR", event);
     }
 
     if (!isValidBase64(pdfReport)) {
       return createErrorResponse("Invalid base64 data in PDF report", 400, "VALIDATION_ERROR", event);
     }
 
-    const recordId = generateRecordId();
+    // Flexible Validation based on report type
+    if (reportType === "ecg") {
+      // Legacy 12-lead check
+      if (!requestBody.deviceId && !requestBody.device_details) {
+        return createErrorResponse("Missing required fields for ECG: deviceId or device_details", 400, "VALIDATION_ERROR", event);
+      }
+    } else if (reportType === "hrv") {
+      // HRV specific check
+      if (!requestBody.hrv_result_reading && !requestBody.rr_intervals) {
+        return createErrorResponse("Missing required fields for HRV: hrv_result_reading or rr_intervals", 400, "VALIDATION_ERROR", event);
+      }
+    } else if (reportType === "hyperkalemia") {
+      // Hyperkalemia specific check
+      if (!requestBody.clinical_findings || !requestBody.clinical_findings.hyperkalemia) {
+        return createErrorResponse("Missing required fields for Hyperkalemia: clinical_findings.hyperkalemia", 400, "VALIDATION_ERROR", event);
+      }
+    }
 
+    // Determine Record ID (Use patient_details.report_id if available, else generate)
+    const recordId = requestBody.patient_details?.report_id || generateRecordId();
+
+    // Create final record object
     const record = {
+      ...requestBody,
       recordId,
-      deviceId: sanitizeString(deviceId),
-      patient: {
-        name: sanitizeString(patient.name),
-        phone: sanitizeString(patient.phone),
-        email: sanitizeString(patient.email || ""),
-        age: parseInt(patient.age, 10),
-        gender: sanitizeString(patient.gender),
-        address: sanitizeString(patient.address || ""),
-        medicalHistory: Array.isArray(patient.medicalHistory)
-          ? patient.medicalHistory.map((item) => sanitizeString(item))
-          : [],
-      },
-      ecgData: {
-        duration: parseInt(ecgData.duration, 10),
-        leads: parseInt(ecgData.leads, 10),
-        sampleRate: parseInt(ecgData.sampleRate, 10),
-        waveform: extractBase64Data(ecgData.waveform).data,
-      },
-      pdfReport,
-      createdAt: new Date().toISOString(),
+      reportType,
+      uploadedAt: new Date().toISOString(),
       status: "active",
       uploadedBy: {
         userId: user.userId,
@@ -326,12 +302,14 @@ exports.handler = async (event) => {
       },
     };
 
-    await uploadECGRecord(recordId, record);
+    // Upload to S3
+    await uploadECGRecord(recordId, record, pdfReport);
 
     return createSuccessResponse(
       {
         recordId,
-        message: "ECG record uploaded successfully",
+        reportType,
+        message: `${reportType.toUpperCase()} record uploaded successfully`,
         timestamp: new Date().toISOString(),
       },
       200,
