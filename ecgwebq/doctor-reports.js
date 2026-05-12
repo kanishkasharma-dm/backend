@@ -24,11 +24,21 @@ function extractDoctorFromToken(authHeader) {
     
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log('JWT decoded:', JSON.stringify(decoded, null, 2));
         return decoded.doctor_name || decoded.doctor_id;
     } catch (error) {
         console.error('JWT verification failed:', error);
         return null;
     }
+}
+
+function sanitizeDoctorName(name) {
+    if (!name) return '';
+    return String(name)
+        .trim()
+        .replace(/\s+/g, '_') // Replace spaces with underscores
+        .replace(/[^a-zA-Z0-9_]/g, '') // Remove special characters
+        .substring(0, 100);
 }
 
 /* ---------------------------------- */
@@ -151,6 +161,8 @@ exports.handler = async (event) => {
             );
         }
 
+        console.log('Extracted doctor name from JWT:', doctorName);
+
         const status =
             event.queryStringParameters?.status ??
             event.queryParameters?.status ??
@@ -174,7 +186,11 @@ exports.handler = async (event) => {
                 );
             }
 
-            const prefix = `doctor-assigned-reports/${doctorName}/reviewed/`;
+            // Sanitize doctor name to match S3 folder structure
+            const sanitizedDoctorName = sanitizeDoctorName(doctorName);
+            console.log('Sanitized doctor name for reviewed:', sanitizedDoctorName);
+            
+            const prefix = `doctor-assigned-reports/${sanitizedDoctorName}/reviewed/`;
 
             const command = new ListObjectsV2Command({
                 Bucket: BUCKET,
@@ -236,7 +252,11 @@ exports.handler = async (event) => {
             );
         }
 
-        const prefix = `doctor-assigned-reports/${doctorName}/pending/`;
+        // Sanitize doctor name to match S3 folder structure
+        const sanitizedDoctorName = sanitizeDoctorName(doctorName);
+        console.log('Sanitized doctor name for pending:', sanitizedDoctorName);
+        
+        const prefix = `doctor-assigned-reports/${sanitizedDoctorName}/pending/`;
 
         const command = new ListObjectsV2Command({
             Bucket: BUCKET,

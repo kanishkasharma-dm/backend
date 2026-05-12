@@ -182,6 +182,15 @@ function extractDoctorFromToken(authHeader) {
     }
 }
 
+function sanitizeDoctorName(name) {
+    if (!name) return '';
+    return String(name)
+        .trim()
+        .replace(/\s+/g, '_') // Replace spaces with underscores
+        .replace(/[^a-zA-Z0-9_]/g, '') // Remove special characters
+        .substring(0, 100);
+}
+
 exports.handler = (0, response_1.withErrorHandler)(async (event) => {
     console.log('Upload reviewed event received:', JSON.stringify(event, null, 2));
     
@@ -290,13 +299,14 @@ exports.handler = (0, response_1.withErrorHandler)(async (event) => {
     }
     
     const baseName = originalFileName.replace(/^.*[\\/]/, "").replace(/\.pdf$/i, "");
-    console.log('Uploading reviewed PDF for doctor:', doctorName, 'file:', baseName);
+    const sanitizedDoctorName = sanitizeDoctorName(doctorName);
+    console.log('Uploading reviewed PDF for doctor:', doctorName, 'sanitized:', sanitizedDoctorName, 'file:', baseName);
     
-    // 🔑 Use doctorName from JWT instead of doctorId field
-    const uploadResult = await (0, s3Service_1.uploadReviewedPDF)(baseName, pdfBuffer, doctorName);
+    // 🔑 Use sanitized doctorName for S3 operations
+    const uploadResult = await (0, s3Service_1.uploadReviewedPDF)(baseName, pdfBuffer, sanitizedDoctorName);
     
     // 🗑️ DELETE original file from pending folder
-    const originalKey = `doctor-assigned-reports/${doctorName}/pending/${originalFileName}`;
+    const originalKey = `doctor-assigned-reports/${sanitizedDoctorName}/pending/${originalFileName}`;
     console.log('Deleting original file from pending:', originalKey);
     
     const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
