@@ -1,6 +1,7 @@
 "use strict";
 
 const crypto = require("crypto");
+const { PutObjectCommand, S3Client } = require("@aws-sdk/client-s3");
 const { SendEmailCommand, SESv2Client } = require("@aws-sdk/client-sesv2");
 const { createClient } = require("@supabase/supabase-js");
 
@@ -11,6 +12,10 @@ const supabase = createClient(
 
 const sesClient = new SESv2Client({
   region: process.env.SES_REGION || process.env.AWS_REGION || "us-east-1",
+});
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || "us-east-1",
 });
 
 function getCorsOrigin(event) {
@@ -155,6 +160,39 @@ function buildSetupUrl(token) {
 
   const separator = baseUrl.includes("?") ? "&" : "?";
   return `${baseUrl}${separator}token=${encodeURIComponent(token)}`;
+}
+
+async function createDoctorS3Folders(doctorName) {
+  const bucket = process.env.S3_BUCKET;
+  if (!bucket) {
+    return {
+      created: false,
+      reason: "S3_BUCKET_NOT_CONFIGURED",
+    };
+  }
+
+  const prefixes = [
+    `doctors/${doctorName}/`,
+    `doctor-assigned-reports/${doctorName}/`,
+  ];
+
+  await Promise.all(
+    prefixes.map((key) =>
+      s3Client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: "",
+          ContentType: "application/x-directory",
+        })
+      )
+    )
+  );
+
+  return {
+    created: true,
+    reason: null,
+  };
 }
 
 async function sendInviteEmail({ email, doctorName, temporaryPassword, setupUrl }) {
@@ -374,6 +412,11 @@ exports.handler = async (event) => {
       throw insertError;
     }
 
+    const s3FolderResult = await createDoctorS3Folders(doctorName);
+    if (!s3FolderResult.created) {
+      throw new Error(s3FolderResult.reason || "Failed to create doctor S3 folders");
+    }
+
     const emailResult = setupUrl
       ? await sendInviteEmail({
           email,
@@ -406,6 +449,10 @@ exports.handler = async (event) => {
         invite: {
           emailSent: emailResult.sent,
           reason: emailResult.reason,
+        },
+        storage: {
+          foldersCreated: s3FolderResult.created,
+          bucket: process.env.S3_BUCKET || null,
         },
         createdBy: {
           userId: admin.userId,

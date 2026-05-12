@@ -1,7 +1,15 @@
 node_modules/
 .env
-.DS_Store
+.env.*
+.env.local
+.env.development
+.env.staging
+.env.production
+
 *.log
+*.zip
+.DS_Store
+
 dist/
 build/
-
+coverage/
