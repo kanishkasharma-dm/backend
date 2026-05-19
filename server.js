@@ -7,6 +7,8 @@ import deviceRoutes from './routes/deviceRoutes.js';
 import iotRoutes from './routes/iotRoutes.js';
 import ecgRoutes from './routes/ecgRoutes.js';
 import ocRoutes from './routes/ocRoutes.js';
+import licenseRoutes from './routes/licenseRoutes.js';
+import licenseAdminRoutes from './routes/licenseAdminRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -20,8 +22,21 @@ connectDB().catch(err => {
 });
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://www.cardiox.in',
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Token', 'X-Signature', 'X-HMAC-Signature', 'X-CardioX-Signature'],
+}));
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString('utf8');
+  },
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
@@ -48,6 +63,12 @@ app.get('/', (req, res) => {
       getOCDataHistory: 'GET /api/oc/data/:deviceId',
       getLatestOCData: 'GET /api/oc/data/:deviceId/latest',
       updateOCData: 'PUT /api/oc/data/:deviceId',
+      licenses: 'GET /api/licenses',
+      createLicense: 'POST /api/licenses/create',
+      revokeLicense: 'POST /api/licenses/revoke',
+      licenseActivations: 'GET /api/licenses/activations',
+      adminLicenses: 'GET /admin/licenses',
+      adminLicenseActivations: 'GET /admin/activations',
     },
     documentation: 'See README.md for full API documentation',
   });
@@ -67,6 +88,8 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/iot', iotRoutes);
 app.use('/api/ecg', ecgRoutes);
 app.use('/api/oc', ocRoutes);
+app.use('/api/licenses', licenseRoutes);
+app.use('/admin', licenseAdminRoutes);
 
 // 404 handler
 app.use((req, res) => {
